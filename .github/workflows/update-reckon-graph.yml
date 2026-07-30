@@ -1,0 +1,52 @@
+name: Update Reckon Graph formula
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Published reckon-graph npm version
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+
+      - name: Update and verify formula
+        run: |
+          scripts/update-reckon-graph-formula "${{ inputs.version }}"
+          bash -n scripts/verify-reckon-graph-formula
+          bash -n scripts/update-reckon-graph-formula
+
+      - name: Create update pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          if git diff --quiet; then
+            echo "Formula already targets reckon-graph ${VERSION}."
+            exit 0
+          fi
+          branch="automation/reckon-graph-${VERSION}-${GITHUB_RUN_ID}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add Formula/reckon-graph.rb
+          git commit -m "reckon-graph ${VERSION}"
+          git push --set-upstream origin "$branch"
+          gh pr create \
+            --base main \
+            --head "$branch" \
+            --title "reckon-graph ${VERSION}" \
+            --body "Updates the formula to the published reckon-graph ${VERSION} npm tarball. The release URL, package version, and SHA-256 were verified before this pull request was opened."

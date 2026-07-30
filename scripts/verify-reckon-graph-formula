@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+formula_path="$repo_root/Formula/reckon-graph.rb"
+
+tarball_url="$(
+  sed -n 's/^[[:space:]]*url "\([^"]*\)"$/\1/p' "$formula_path"
+)"
+expected_sha256="$(
+  sed -n 's/^[[:space:]]*sha256 "\([0-9a-f]\{64\}\)"$/\1/p' "$formula_path"
+)"
+if [[ -z "$tarball_url" || -z "$expected_sha256" ]]; then
+  printf 'formula URL or SHA-256 missing\n' >&2
+  exit 1
+fi
+
+temporary_dir="$(mktemp -d)"
+trap 'rm -rf "$temporary_dir"' EXIT
+tarball_path="$temporary_dir/reckon-graph.tgz"
+
+curl --fail --location --silent --show-error "$tarball_url" --output "$tarball_path"
+actual_sha256="$(shasum -a 256 "$tarball_path" | awk '{print $1}')"
+if [[ "$actual_sha256" != "$expected_sha256" ]]; then
+  printf 'SHA-256 mismatch: expected %s, got %s\n' "$expected_sha256" "$actual_sha256" >&2
+  exit 1
+fi
+
+formula_version="${tarball_url##*/reckon-graph-}"
+formula_version="${formula_version%.tgz}"
+package_version="$(
+  tar -xOf "$tarball_path" package/package.json |
+    node -e 'let input=""; process.stdin.on("data", c => input += c); process.stdin.on("end", () => console.log(JSON.parse(input).version));'
+)"
+if [[ -z "$formula_version" || "$formula_version" != "$package_version" ]]; then
+  printf 'Version mismatch: formula URL=%s, package=%s\n' "$formula_version" "$package_version" >&2
+  exit 1
+fi
+
+printf 'Verified reckon-graph %s (%s)\n' "$package_version" "$actual_sha256"

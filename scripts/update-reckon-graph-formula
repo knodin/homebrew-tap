@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 1 || ! "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+([+-][0-9A-Za-z.-]+)?$ ]]; then
+  printf 'usage: %s <published-semver>\n' "$0" >&2
+  exit 2
+fi
+
+version="$1"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+formula_path="$repo_root/Formula/reckon-graph.rb"
+registry="${RECKON_NPM_REGISTRY:-https://registry.npmjs.org}"
+package_spec="reckon-graph@$version"
+
+published_version="$(
+  npm view "$package_spec" version --registry "$registry" --json |
+    node -e 'let input=""; process.stdin.on("data", c => input += c); process.stdin.on("end", () => { const value = JSON.parse(input); console.log(Array.isArray(value) ? value.at(-1) : value); });'
+)"
+if [[ "$published_version" != "$version" ]]; then
+  printf 'npm returned version %s for requested %s\n' "$published_version" "$version" >&2
+  exit 1
+fi
+
+tarball_url="$(npm view "$package_spec" dist.tarball --registry "$registry")"
+if [[ "$tarball_url" != https://* ]]; then
+  printf 'refusing non-HTTPS tarball URL: %s\n' "$tarball_url" >&2
+  exit 1
+fi
+
+temporary_dir="$(mktemp -d)"
+trap 'rm -rf "$temporary_dir"' EXIT
+tarball_path="$temporary_dir/reckon-graph-$version.tgz"
+curl --fail --location --silent --show-error "$tarball_url" --output "$tarball_path"
+sha256="$(shasum -a 256 "$tarball_path" | awk '{print $1}')"
+
+package_version="$(
+  tar -xOf "$tarball_path" package/package.json |
+    node -e 'let input=""; process.stdin.on("data", c => input += c); process.stdin.on("end", () => console.log(JSON.parse(input).version));'
+)"
+if [[ "$package_version" != "$version" ]]; then
+  printf 'tarball package version %s does not match requested %s\n' "$package_version" "$version" >&2
+  exit 1
+fi
+
+TARBALL_URL="$tarball_url" TARBALL_SHA256="$sha256" node - "$formula_path" <<'NODE'
+const fs = require("node:fs");
+const formulaPath = process.argv[2];
+const formula = fs.readFileSync(formulaPath, "utf8");
+const updated = formula
+  .replace(/^\s*url "[^"]+"$/m, `  url "${process.env.TARBALL_URL}"`)
+  .replace(/^\s*sha256 "[0-9a-f]{64}"$/m, `  sha256 "${process.env.TARBALL_SHA256}"`);
+if (updated !== formula) {
+  fs.writeFileSync(formulaPath, updated);
+}
+NODE
+
+"$repo_root/scripts/verify-reckon-graph-formula"
+printf 'Updated Formula/reckon-graph.rb to %s\n' "$version"
