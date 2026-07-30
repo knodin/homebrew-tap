@@ -1,6 +1,6 @@
 require "json"
 
-class ReckonGraph < Formula
+class Reckon < Formula
   desc "Local code-intelligence graph, CLI, and single-tool MCP gateway"
   homepage "https://www.npmjs.com/package/reckon-graph"
   url "https://registry.npmjs.org/reckon-graph/-/reckon-graph-0.1.22.tgz"
