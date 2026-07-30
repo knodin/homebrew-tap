@@ -9,10 +9,22 @@ formula and release-verification automation, not the Reckon Graph source code.
 
 Homebrew installs the required Node.js runtime. Bun is not required.
 
+The recommended one-command installation automatically adds the tap and trusts
+only the `reckon` formula:
+
+```bash
+brew install reckon-graph/tap/reckon
+reckon --version
+```
+
+Homebrew requires explicit trust before it will resolve a third-party formula
+by its short name. If `brew install reckon` is required literally, configure
+that trust first:
+
 ```bash
 brew tap reckon-graph/tap
+brew trust --formula reckon-graph/tap/reckon
 brew install reckon
-reckon --version
 ```
 
 Then initialize an existing Git checkout:
