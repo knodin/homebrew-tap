@@ -7,17 +7,17 @@ SHA-256. Run these checks before opening a pull request:
 scripts/verify-reckon-graph-formula
 bash -n scripts/verify-reckon-graph-formula
 bash -n scripts/update-reckon-graph-formula
-ruby -c Formula/reckon-graph.rb
+ruby -c Formula/reckon.rb
 ```
 
 For a local Homebrew acceptance test:
 
 ```bash
-brew tap timpaulaskasds/tap "$(pwd)"
-brew style Formula/reckon-graph.rb
-brew audit --strict timpaulaskasds/tap/reckon-graph
-brew install --build-from-source timpaulaskasds/tap/reckon-graph
-brew test timpaulaskasds/tap/reckon-graph
+brew tap reckon-graph/tap "$(pwd)"
+brew style Formula/reckon.rb
+brew audit --strict reckon-graph/tap/reckon
+brew install --build-from-source reckon-graph/tap/reckon
+brew test reckon-graph/tap/reckon
 ```
 
 Never commit credentials, internal service names, private registry URLs, or

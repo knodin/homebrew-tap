@@ -8,7 +8,7 @@ fi
 
 version="$1"
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-formula_path="$repo_root/Formula/reckon-graph.rb"
+formula_path="$repo_root/Formula/reckon.rb"
 registry="${RECKON_NPM_REGISTRY:-https://registry.npmjs.org}"
 package_spec="reckon-graph@$version"
 
@@ -55,4 +55,4 @@ if (updated !== formula) {
 NODE
 
 "$repo_root/scripts/verify-reckon-graph-formula"
-printf 'Updated Formula/reckon-graph.rb to %s\n' "$version"
+printf 'Updated Formula/reckon.rb to %s\n' "$version"

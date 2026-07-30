@@ -46,14 +46,14 @@ jobs:
         run: scripts/verify-reckon-graph-formula
 
       - name: Register checked-out tap
-        run: brew tap timpaulaskasds/tap "$GITHUB_WORKSPACE"
+        run: brew tap reckon-graph/tap "$GITHUB_WORKSPACE"
 
       - name: Style and audit formula
         run: |
-          brew style Formula/reckon-graph.rb
-          brew audit --strict timpaulaskasds/tap/reckon-graph
+          brew style Formula/reckon.rb
+          brew audit --strict reckon-graph/tap/reckon
 
       - name: Install and test formula
         run: |
-          brew install --build-from-source timpaulaskasds/tap/reckon-graph
-          brew test timpaulaskasds/tap/reckon-graph
+          brew install --build-from-source reckon-graph/tap/reckon
+          brew test reckon-graph/tap/reckon

@@ -10,7 +10,8 @@ formula and release-verification automation, not the Reckon Graph source code.
 Homebrew installs the required Node.js runtime. Bun is not required.
 
 ```bash
-brew install TimPaulaskasDS/tap/reckon-graph
+brew tap reckon-graph/tap
+brew install reckon
 reckon --version
 ```
 
@@ -36,12 +37,12 @@ verify graph, hook, and agent-integration health.
 
 ```bash
 brew update
-brew upgrade reckon-graph
+brew upgrade reckon
 ```
 
 ```bash
-brew uninstall reckon-graph
-brew untap TimPaulaskasDS/tap
+brew uninstall reckon
+brew untap reckon-graph/tap
 ```
 
 ## Supply-chain checks

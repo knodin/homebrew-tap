@@ -2,7 +2,7 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-formula_path="$repo_root/Formula/reckon-graph.rb"
+formula_path="$repo_root/Formula/reckon.rb"
 
 tarball_url="$(
   sed -n 's/^[[:space:]]*url "\([^"]*\)"$/\1/p' "$formula_path"
