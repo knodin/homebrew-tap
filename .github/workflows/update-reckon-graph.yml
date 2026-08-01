@@ -42,7 +42,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$branch"
-          git add Formula/reckon-graph.rb
+          git add Formula/reckon.rb
           git commit -m "reckon-graph ${VERSION}"
           git push --set-upstream origin "$branch"
           gh pr create \
