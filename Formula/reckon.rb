@@ -3,8 +3,8 @@ require "json"
 class Reckon < Formula
   desc "Local code-intelligence graph, CLI, and single-tool MCP gateway"
   homepage "https://www.npmjs.com/package/reckon-graph"
-  url "https://registry.npmjs.org/reckon-graph/-/reckon-graph-0.3.0.tgz"
-  sha256 "373ca7540e745915f195e51f4ed6383374e4df4a2b8663872b2f279380e60989"
+  url "https://registry.npmjs.org/reckon-graph/-/reckon-graph-0.4.2.tgz"
+  sha256 "a7a8e268f2b12539f6e7c6c97a9b54ae64d1e0d0b9e6c0d1e58c0e58711eb1a9"
   license "MIT"
 
   depends_on "node"
