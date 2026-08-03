@@ -4,20 +4,20 @@ Formula changes must reference a published HTTPS release artifact and its exact
 SHA-256. Run these checks before opening a pull request:
 
 ```bash
-scripts/verify-reckon-graph-formula
-bash -n scripts/verify-reckon-graph-formula
-bash -n scripts/update-reckon-graph-formula
-ruby -c Formula/reckon.rb
+scripts/verify-knodin-formula
+bash -n scripts/verify-knodin-formula
+bash -n scripts/update-knodin-formula
+ruby -c Formula/knodin.rb
 ```
 
 For a local Homebrew acceptance test:
 
 ```bash
-brew tap reckon-graph/tap "$(pwd)"
-brew style Formula/reckon.rb
-brew audit --strict reckon-graph/tap/reckon
-brew install --build-from-source reckon-graph/tap/reckon
-brew test reckon-graph/tap/reckon
+brew tap knodin/tap "$(pwd)"
+brew style Formula/knodin.rb
+brew audit --strict knodin/tap/knodin
+brew install --build-from-source knodin/tap/knodin
+brew test knodin/tap/knodin
 ```
 
 Never commit credentials, internal service names, private registry URLs, or

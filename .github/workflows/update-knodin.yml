@@ -1,10 +1,10 @@
-name: Update Reckon Graph formula
+name: Update knodin formula
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: Published reckon-graph npm version
+        description: Published knodin npm version
         required: true
         type: string
 
@@ -25,9 +25,9 @@ jobs:
 
       - name: Update and verify formula
         run: |
-          scripts/update-reckon-graph-formula "${{ inputs.version }}"
-          bash -n scripts/verify-reckon-graph-formula
-          bash -n scripts/update-reckon-graph-formula
+          scripts/update-knodin-formula "${{ inputs.version }}"
+          bash -n scripts/verify-knodin-formula
+          bash -n scripts/update-knodin-formula
 
       - name: Create update pull request
         env:
@@ -35,18 +35,18 @@ jobs:
           VERSION: ${{ inputs.version }}
         run: |
           if git diff --quiet; then
-            echo "Formula already targets reckon-graph ${VERSION}."
+            echo "Formula already targets knodin ${VERSION}."
             exit 0
           fi
-          branch="automation/reckon-graph-${VERSION}-${GITHUB_RUN_ID}"
+          branch="automation/knodin-${VERSION}-${GITHUB_RUN_ID}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$branch"
-          git add Formula/reckon.rb
-          git commit -m "reckon-graph ${VERSION}"
+          git add Formula/knodin.rb
+          git commit -m "knodin ${VERSION}"
           git push --set-upstream origin "$branch"
           gh pr create \
             --base main \
             --head "$branch" \
-            --title "reckon-graph ${VERSION}" \
-            --body "Updates the formula to the published reckon-graph ${VERSION} npm tarball. The release URL, package version, and SHA-256 were verified before this pull request was opened."
+            --title "knodin ${VERSION}" \
+            --body "Updates the formula to the published knodin ${VERSION} npm tarball. The release URL, package version, and SHA-256 were verified before this pull request was opened."

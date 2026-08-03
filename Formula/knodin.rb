@@ -1,16 +1,16 @@
 require "json"
 
-class Reckon < Formula
+class Knodin < Formula
   desc "Local code-intelligence graph, CLI, and single-tool MCP gateway"
-  homepage "https://www.npmjs.com/package/reckon-graph"
-  url "https://registry.npmjs.org/reckon-graph/-/reckon-graph-0.4.3.tgz"
-  sha256 "10366b85ea4ed9f2c7d5b55cb3aa4b996c62c8fa9a286570de1115cc01db1b36"
+  homepage "https://www.npmjs.com/package/knodin"
+  url "https://registry.npmjs.org/knodin/-/knodin-0.6.0.tgz"
+  sha256 "1d3b00c5b192a3923e6f7ad4a18b4b8ac0fe070527ec01f3b9263dca75c52f12"
   license "MIT"
 
   depends_on "node"
 
   def install
-    # Reckon's packaged CPU path is verified without dependency lifecycle scripts.
+    # knodin's packaged CPU path is verified without dependency lifecycle scripts.
     # This avoids optional downloads and native rebuilds from transitive packages.
     ENV["npm_config_ignore_scripts"] = "true"
     system "npm", "install", *std_npm_args
@@ -18,7 +18,7 @@ class Reckon < Formula
   end
 
   test do
-    assert_equal version.to_s, shell_output("#{bin}/reckon --version").strip
+    assert_equal version.to_s, shell_output("#{bin}/knodin --version").strip
 
     requests = [
       {
@@ -35,13 +35,13 @@ class Reckon < Formula
       { jsonrpc: "2.0", id: 2, method: "tools/list", params: {} },
     ]
     input = requests.map(&:to_json).join("\n") + "\n"
-    responses = pipe_output("#{bin}/reckon serve", input).lines.filter_map do |line|
+    responses = pipe_output("#{bin}/knodin serve", input).lines.filter_map do |line|
       JSON.parse(line) unless line.strip.empty?
     end
 
     initialize_response = responses.find { |response| response["id"] == 1 }
     tools_response = responses.find { |response| response["id"] == 2 }
-    assert_equal "reckon-graph", initialize_response.dig("result", "serverInfo", "name")
-    assert_equal ["reckon"], tools_response.dig("result", "tools").map { |tool| tool["name"] }
+    assert_equal "knodin", initialize_response.dig("result", "serverInfo", "name")
+    assert_equal ["knodin"], tools_response.dig("result", "tools").map { |tool| tool["name"] }
   end
 end

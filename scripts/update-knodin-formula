@@ -8,9 +8,9 @@ fi
 
 version="$1"
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-formula_path="$repo_root/Formula/reckon.rb"
-registry="${RECKON_NPM_REGISTRY:-https://registry.npmjs.org}"
-package_spec="reckon-graph@$version"
+formula_path="$repo_root/Formula/knodin.rb"
+registry="${KNODIN_NPM_REGISTRY:-https://registry.npmjs.org}"
+package_spec="knodin@$version"
 
 published_version="$(
   npm view "$package_spec" version --registry "$registry" --json |
@@ -29,7 +29,7 @@ fi
 
 temporary_dir="$(mktemp -d)"
 trap 'rm -rf "$temporary_dir"' EXIT
-tarball_path="$temporary_dir/reckon-graph-$version.tgz"
+tarball_path="$temporary_dir/knodin-$version.tgz"
 curl --fail --location --silent --show-error "$tarball_url" --output "$tarball_path"
 sha256="$(shasum -a 256 "$tarball_path" | awk '{print $1}')"
 
@@ -54,5 +54,5 @@ if (updated !== formula) {
 }
 NODE
 
-"$repo_root/scripts/verify-reckon-graph-formula"
-printf 'Updated Formula/reckon.rb to %s\n' "$version"
+"$repo_root/scripts/verify-knodin-formula"
+printf 'Updated Formula/knodin.rb to %s\n' "$version"
