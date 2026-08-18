@@ -3,8 +3,8 @@ require "json"
 class Knodin < Formula
   desc "Local code-intelligence graph, CLI, and single-tool MCP gateway"
   homepage "https://www.npmjs.com/package/knodin"
-  url "https://registry.npmjs.org/knodin/-/knodin-0.8.7.tgz"
-  sha256 "01db028664ee0771322676d59edb2deb14950e8e06b7d2c839ea764cabd30a09"
+  url "https://registry.npmjs.org/knodin/-/knodin-0.9.0.tgz"
+  sha256 "73637d1e6515834f292cf46c8daa5f7d8bfd462484182a5484e2f2b71494d14a"
   license "MIT"
 
   depends_on "node"
