@@ -21,6 +21,13 @@
       "compatibility": "breaking",
       "yanked": false,
       "formula": "Formula/knodin@0.10.1.rb"
+    },
+    {
+      "version": "0.10.2",
+      "publishedAt": "2026-08-25T20:43:06.267Z",
+      "compatibility": "breaking",
+      "yanked": false,
+      "formula": "Formula/knodin@0.10.2.rb"
     }
   ]
 }
