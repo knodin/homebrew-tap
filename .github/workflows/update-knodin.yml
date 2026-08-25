@@ -1,16 +1,38 @@
 name: Update knodin formula
 
+# Why the tap pulls instead of the knodin repository pushing.
+#
+# knodin's publish workflow had a "Retain versioned Homebrew formula" job that
+# wrote here directly. It failed on every release: the tap is in a different
+# GitHub organisation, GITHUB_TOKEN is scoped to the repository it runs in, and
+# the cross-organisation credential it fell back to (HOMEBREW_TAP_TOKEN) was
+# never created. Inverting it removes the credential from the design entirely —
+# this workflow writes to its own repository, so github.token is enough.
+#
+# The cost is that the tap trails a publish by up to the poll interval instead
+# of updating atomically with it. That is the right trade for a package manager:
+# the formula can only be correct once the tarball is actually on the registry,
+# which is exactly what this waits for.
+
 on:
+  schedule:
+    # Off the hour deliberately: :00 is when every scheduled job on GitHub fires.
+    - cron: "23 * * * *"
   workflow_dispatch:
     inputs:
       version:
-        description: Published knodin npm version
-        required: true
+        description: Published knodin npm version (defaults to the npm latest tag)
+        required: false
         type: string
 
 permissions:
   contents: write
   pull-requests: write
+
+concurrency:
+  # Two runs racing would open duplicate pull requests for the same release.
+  group: update-knodin
+  cancel-in-progress: false
 
 jobs:
   update:
@@ -23,30 +45,72 @@ jobs:
         with:
           node-version: 24
 
-      - name: Update and verify formula
+      - name: Resolve the target version
+        id: target
+        env:
+          REQUESTED: ${{ inputs.version }}
         run: |
-          scripts/update-knodin-formula "${{ inputs.version }}"
-          bash -n scripts/verify-knodin-formula
-          bash -n scripts/update-knodin-formula
+          set -euo pipefail
+          if [ -n "${REQUESTED}" ]; then
+            version="${REQUESTED}"
+          else
+            version="$(npm view knodin dist-tags.latest)"
+          fi
+          # An empty version would make every check below vacuously "already
+          # current" and the job would report success having done nothing.
+          if [ -z "${version}" ]; then
+            echo "could not resolve a knodin version from npm" >&2
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "Target knodin version: ${version}"
+
+      - name: Skip when the tap already serves this release
+        id: state
+        env:
+          VERSION: ${{ steps.target.outputs.version }}
+        run: |
+          set -euo pipefail
+          # Both must be true to skip: the default formula points at this
+          # release AND the versioned formula is retained. Checking only one
+          # would leave the other permanently missing.
+          if grep -q "knodin-${VERSION}.tgz" Formula/knodin.rb && [ -f "Formula/knodin@${VERSION}.rb" ]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+            echo "Tap already serves and retains knodin ${VERSION}."
+          else
+            echo "current=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update the default formula
+        if: steps.state.outputs.current == 'false'
+        run: scripts/update-knodin-formula "${{ steps.target.outputs.version }}"
+
+      - name: Retain the versioned formula and channel metadata
+        if: steps.state.outputs.current == 'false'
+        run: scripts/retain-knodin-version "${{ steps.target.outputs.version }}"
 
       - name: Create update pull request
+        if: steps.state.outputs.current == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ inputs.version }}
+          VERSION: ${{ steps.target.outputs.version }}
         run: |
-          if git diff --quiet; then
-            echo "Formula already targets knodin ${VERSION}."
+          set -euo pipefail
+          if git diff --quiet && git diff --cached --quiet && [ -z "$(git status --porcelain)" ]; then
+            echo "Nothing changed for knodin ${VERSION}; not opening a pull request."
             exit 0
           fi
           branch="automation/knodin-${VERSION}-${GITHUB_RUN_ID}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$branch"
-          git add Formula/knodin.rb
+          git add Formula/knodin.rb "Formula/knodin@${VERSION}.rb" versions.json
           git commit -m "knodin ${VERSION}"
           git push --set-upstream origin "$branch"
           gh pr create \
             --base main \
             --head "$branch" \
             --title "knodin ${VERSION}" \
-            --body "Updates the formula to the published knodin ${VERSION} npm tarball. The release URL, package version, and SHA-256 were verified before this pull request was opened."
+            --body "Updates the default formula to the published knodin ${VERSION} npm tarball, retains \`Formula/knodin@${VERSION}.rb\`, and records the release in \`versions.json\`.
+
+          The tarball URL, package version, SHA-256, and compatibility were all read from the published npm artifact and verified before this pull request was opened."

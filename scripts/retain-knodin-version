@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+# Retain an immutable, versioned formula for one published knodin release and
+# record it in versions.json.
+#
+# This lives in the tap rather than in the knodin repository on purpose. The
+# knodin publish workflow cannot write here: the tap is in a different GitHub
+# organisation, and GITHUB_TOKEN is scoped to the repository it runs in, so that
+# job needed a cross-organisation credential that never existed and failed on
+# every release. Running here, the tap's own GITHUB_TOKEN is sufficient and
+# there is no token to create, expire, or rotate.
+#
+# Everything is derived from the published npm tarball, so the tap never has to
+# be told anything the registry cannot confirm.
+set -euo pipefail
+
+if [[ $# -ne 1 || ! "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+([+-][0-9A-Za-z.-]+)?$ ]]; then
+  printf 'usage: %s <published-semver>\n' "$0" >&2
+  exit 2
+fi
+
+version="$1"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+registry="${KNODIN_NPM_REGISTRY:-https://registry.npmjs.org}"
+formula_path="$repo_root/Formula/knodin@$version.rb"
+versions_path="$repo_root/versions.json"
+
+tarball_url="$(npm view "knodin@$version" dist.tarball --registry "$registry")"
+if [[ "$tarball_url" != https://* ]]; then
+  printf 'refusing non-HTTPS tarball URL: %s\n' "$tarball_url" >&2
+  exit 1
+fi
+
+temporary_dir="$(mktemp -d)"
+trap 'rm -rf "$temporary_dir"' EXIT
+tarball_path="$temporary_dir/knodin-$version.tgz"
+curl --fail --location --silent --show-error "$tarball_url" --output "$tarball_path"
+sha256="$(shasum -a 256 "$tarball_path" | awk '{print $1}')"
+
+# Read the version and compatibility out of the tarball itself rather than
+# trusting the requested version: the registry is the authority on what was
+# actually published.
+package_json="$(tar -xOf "$tarball_path" package/package.json)"
+package_version="$(
+  printf '%s' "$package_json" |
+    node -e 'let i="";process.stdin.on("data",c=>i+=c);process.stdin.on("end",()=>console.log(JSON.parse(i).version));'
+)"
+if [[ "$package_version" != "$version" ]]; then
+  printf 'tarball package version %s does not match requested %s\n' "$package_version" "$version" >&2
+  exit 1
+fi
+compatibility="$(
+  printf '%s' "$package_json" |
+    node -e 'let i="";process.stdin.on("data",c=>i+=c);process.stdin.on("end",()=>{const p=JSON.parse(i);console.log(p.knodin&&p.knodin.compatibility?p.knodin.compatibility:"metadata-incomplete");});'
+)"
+
+# Byte-identical to the knodin repository's scripts/render-homebrew-formula.ts.
+# If that generator changes, this must change with it, or a formula retained
+# here would differ from one retained there for the same release.
+class_name="KnodinAT${version//./}"
+if [[ -f "$formula_path" ]]; then
+  printf 'Formula/knodin@%s.rb already exists; refusing to rewrite a retained formula\n' "$version" >&2
+else
+  cat > "$formula_path" <<FORMULA
+class $class_name < Formula
+  desc "Source-evidenced local code intelligence with known bounds"
+  homepage "https://github.com/DTS-Productivity-Engineering/knodin"
+  url "https://registry.npmjs.org/knodin/-/knodin-$version.tgz"
+  sha256 "$sha256"
+  license "MIT"
+
+  depends_on "node@24"
+
+  def install
+    libexec.install Dir["*"]
+    npm = Formula["node@24"].opt_bin/"npm"
+    system npm, "install", "--omit=dev", "--ignore-scripts", "--prefix", libexec
+    bin.install_symlink libexec/"dist/bin/launcher.js" => "knodin"
+  end
+
+  test do
+    assert_equal "$version", shell_output("#{bin}/knodin --version").strip
+  end
+end
+FORMULA
+fi
+
+VERSION="$version" COMPATIBILITY="$compatibility" VERSIONS_PATH="$versions_path" node --input-type=module - <<'NODE'
+import fs from "node:fs";
+const file = process.env.VERSIONS_PATH;
+const state = JSON.parse(fs.readFileSync(file, "utf8"));
+if (state.schemaVersion !== 1 || !Array.isArray(state.versions))
+  throw new Error("tap versions.json is invalid");
+const version = process.env.VERSION;
+const entry = {
+  version,
+  publishedAt: new Date().toISOString(),
+  compatibility: process.env.COMPATIBILITY,
+  yanked: false,
+  formula: `Formula/knodin@${version}.rb`,
+};
+const existing = state.versions.find((candidate) => candidate.version === version);
+// Published metadata is immutable. Refuse a conflicting rewrite rather than
+// silently changing what consumers already read.
+if (existing) {
+  if (
+    existing.compatibility !== entry.compatibility ||
+    existing.formula !== entry.formula ||
+    existing.yanked !== false
+  )
+    throw new Error(`release ${version} already has different tap metadata`);
+  process.exit(0);
+}
+state.versions.push(entry);
+fs.writeFileSync(file, `${JSON.stringify(state, null, 2)}\n`);
+NODE
+
+printf 'Retained knodin %s (%s, compatibility=%s)\n' "$version" "$sha256" "$compatibility"
