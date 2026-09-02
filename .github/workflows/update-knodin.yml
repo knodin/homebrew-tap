@@ -100,13 +100,31 @@ jobs:
             echo "Nothing changed for knodin ${VERSION}; not opening a pull request."
             exit 0
           fi
-          branch="automation/knodin-${VERSION}-${GITHUB_RUN_ID}"
+          # One branch per RELEASE, not per run. The name used to carry
+          # GITHUB_RUN_ID, and the "already current" check above only inspects
+          # `main` — so while a pull request sat unmerged, main never advanced,
+          # every hourly poll saw the tap as out of date, and each one opened
+          # another branch and another pull request for the same version. Five
+          # accumulated for 0.10.8 before anyone noticed the tap had stopped
+          # tracking releases at all.
+          branch="automation/knodin-${VERSION}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$branch"
           git add Formula/knodin.rb "Formula/knodin@${VERSION}.rb" versions.json
           git commit -m "knodin ${VERSION}"
-          git push --set-upstream origin "$branch"
+          # Force needed because a re-run rebuilds the same release onto a fresh
+          # commit; the content is regenerated from the published tarball each
+          # time, so the remote branch is never a source of truth to preserve.
+          git push --force --set-upstream origin "$branch"
+
+          # An open pull request for this release is the expected state on a
+          # re-run, not a reason to open a second one. Pushing above already
+          # refreshed it.
+          if [ -n "$(gh pr list --head "$branch" --state open --json number --jq '.[].number')" ]; then
+            echo "Pull request for knodin ${VERSION} is already open; refreshed it instead of opening another."
+            exit 0
+          fi
           gh pr create \
             --base main \
             --head "$branch" \
