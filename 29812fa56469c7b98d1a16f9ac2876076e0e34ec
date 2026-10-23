@@ -1,0 +1,7 @@
+---
+{
+  "schema_version": "authorship/1.0.0",
+  "aidev_track_version": "1.0.0",
+  "base_commit_sha": "852a538cc40d6e9e99fa5e1ed4509da921382a81",
+  "prompts": {}
+}
