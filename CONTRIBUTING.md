@@ -22,3 +22,12 @@ brew test knodin/tap/knodin
 
 Never commit credentials, internal service names, private registry URLs, or
 machine-local filesystem paths.
+
+## Optional development attribution
+
+This formula-only repository provides guarded shell hooks in `.githooks`.
+For a clone without an existing hook manager, enable them with
+`git config core.hooksPath .githooks`. If you already have hooks, merge the
+guarded commands into your existing hook chain instead of replacing its checks.
+The hooks do nothing when `aidev-track` is unavailable and forward Git's arguments
+and input to the attribution tool.
