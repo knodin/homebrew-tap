@@ -1,0 +1,2 @@
+#!/usr/bin/env sh
+command -v aidev-track >/dev/null 2>&1 && aidev-track hook pre-commit "$@" || true
