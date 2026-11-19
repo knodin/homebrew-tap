@@ -112,6 +112,13 @@
       "compatibility": "compatible",
       "yanked": false,
       "formula": "Formula/knodin@0.14.1.rb"
+    },
+    {
+      "version": "0.14.2",
+      "publishedAt": "2026-11-19T20:51:00.422Z",
+      "compatibility": "compatible",
+      "yanked": false,
+      "formula": "Formula/knodin@0.14.2.rb"
     }
   ]
 }
